@@ -1,0 +1,62 @@
+### TOI New API ## Ratna_Vivek.R
+### Author 1: Vivek Suhag (PGID: 11810007) 
+### Author 2: Ratna Prashanth (PGID: 11810113)
+
+library("httr")
+library("RCurl")
+library("jsonlite")
+
+apiKey = "2912393b6a38451aa9c2347adae8359e"
+base_url = "https://newsapi.org/v2/everything?"
+search_term = "\'business%20analytics\'"
+pageSize = "100"
+sortBy = "publishedAt"
+
+#url = "https://newsapi.org/v2/sources?language=en&apiKey=2912393b6a38451aa9c2347adae8359e"
+#url = 'https://newsapi.org/v2/everything?q="business%20analytics"&pageSize=100&page=2&sortBy=publishedAt&apiKey=2912393b6a38451aa9c2347adae8359e'
+
+url = paste0(base_url,"q=",search_term,"&pageSize=",pageSize,"&sortBy=",sortBy,"&apiKey=",apiKey)
+url
+
+page_data = getURL(url)
+
+news_data <- jsonlite::fromJSON(page_data)
+
+##if news_data$status == "ok" then proceed else print error
+
+numPages = as.integer(news_data$totalResults/100) + 1 ### Total number of Pages
+numPages
+
+rec_art = data.frame(news_data$articles$source$id, 
+                     news_data$articles$source$name,
+                     news_data$articles$author,
+                     news_data$articles$title,
+                     news_data$articles$description,
+                     news_data$articles$content
+                     )
+
+#head(rec_art)
+
+for (pg in 2:numPages){
+  pg_url = paste0(url,"&page=",pg)
+  
+  page_data = getURL(pg_url)
+  ##Sys.sleep(2) ## Timer for 2 secs.
+  news_data <- jsonlite::fromJSON(page_data)
+  news_data$status ### can put a check for ok status. Dev accounts can pull only 1000 records..So we need to use this.
+
+  pg_rec_art = data.frame(news_data$articles$source$id, 
+                     news_data$articles$source$name,
+                     news_data$articles$author,
+                     news_data$articles$title,
+                     news_data$articles$description,
+                     news_data$articles$content
+                )
+  rec_art = rbind(rec_art,pg_rec_art)
+
+}
+
+colnames(rec_art) <- c('Source ID','Source Name', 'Author', 'Title', 'Description','Content')
+
+write.csv(rec_art,"output_api.csv",row.names = F)    # csv saved to working directory
+
